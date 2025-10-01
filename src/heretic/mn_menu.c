@@ -22,6 +22,9 @@
 #include "deh_str.h"
 #include "doomdef.h"
 #include "doomkeys.h"
+#ifdef __WIIU__
+#include "wiiu_exit.h"
+#endif // __WIIU__
 #include "i_input.h"
 #include "i_system.h"
 #include "i_swap.h"
@@ -1568,9 +1571,15 @@ static void CrispyVsyncHook(void)
 
 static boolean CrispyVsync(int option)
 {
+#ifdef __WIIU__
+    // Prevent disabling VSYNC on Wii U to avoid HOME menu hang issue
+    // SDL bug: GX2SetSwapInterval(0) causes black screen after HOME menu
+    return true;
+#else
     crispy->post_rendering_hook = CrispyVsyncHook;
 
     return true;
+#endif // __WIIU__
 }
 
 static boolean CrispyBrightmaps(int option)
@@ -1784,8 +1793,13 @@ boolean MN_Responder(event_t * event)
             {
                 case 1:
                     G_CheckDemoStatus();
+#ifdef __WIIU__
+                    platform_request_exit();
+                    return false;
+#else
                     I_Quit();
                     return false;
+#endif // __WIIU__
 
                 case 2:
                     players[consoleplayer].messageTics = 0;

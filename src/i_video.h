@@ -51,6 +51,7 @@ typedef boolean (*grabmouse_callback_t)(void);
 // determines the hardware configuration
 // and sets up the video mode
 void I_InitGraphics (void);
+void I_PresentBlackFrame(void);
 
 void I_GraphicsCheckCommandLine(void);
 

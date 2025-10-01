@@ -79,7 +79,7 @@ static int SplitLine(char *line, char **fields, unsigned int max_fields)
             do
             {
                 ++p;
-            } while (*p != '\0' && isspace(*p));
+            } while (*p != '\0' && isspace((unsigned char)*p));
 
             fields[num_fields] = p;
             ++num_fields;
@@ -99,7 +99,7 @@ static int SplitLine(char *line, char **fields, unsigned int max_fields)
 
     // Strip off trailing whitespace from the end of the line.
     p = fields[num_fields - 1] + strlen(fields[num_fields - 1]);
-    while (p > fields[num_fields - 1] && isspace(*(p - 1)))
+    while (p > fields[num_fields - 1] && isspace((unsigned char)*(p - 1)))
     {
         --p;
         *p = '\0';

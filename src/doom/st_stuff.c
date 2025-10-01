@@ -907,7 +907,7 @@ ST_Responder (event_t* ev)
 
 	cht_GetParam(&cheat_mus1, buf);
 
-	return isdigit(buf[0]);
+        return isdigit((unsigned char)buf[0]);
       }
       // [crispy] allow both idspispopd and idclip cheats in all gamemissions
       else if ( ( /* logical_gamemission == doom
@@ -1360,7 +1360,7 @@ ST_Responder (event_t* ev)
 
 	cht_GetParam(&cheat_clev1, buf);
 
-	return isdigit(buf[0]);
+        return isdigit((unsigned char)buf[0]);
     }
   }
   return false;

@@ -133,6 +133,7 @@ void I_ShutdownJoystick(void)
 #endif // __WIIU__
 }
 
+__attribute__((unused))
 static boolean IsValidAxis(int axis)
 {
     int num_axes;

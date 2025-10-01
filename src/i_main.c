@@ -33,6 +33,8 @@
 
 #ifdef __WIIU__
 #include <whb/proc.h>
+#include <coreinit/screen.h>
+#include <sndcore2/core.h>
 #include "wiiu_launcher.h"
 #include "wiiu_controller.h"
 #endif // __WIIU__
@@ -59,9 +61,28 @@ int main(int argc, char **argv)
     }
 
 #ifdef __WIIU__
+    // Initialize wut's ProcUI wrapper
     WHBProcInit();
+    
+    // Register manual ProcUI cleanup to ensure proper shutdown
+    extern void cleanup_procui(void);
+    atexit(cleanup_procui);
+    
     WiiU_InitJoystick();
+    AXInit(); // Kill sounds
     launcherRun();
+
+    extern int launcherRunning;
+    if (launcherRunning < 0)
+    {
+        // Clean shutdown using wut wrapper
+        extern void WiiU_OSScreenCompleteShutdown(void);
+        WiiU_OSScreenCompleteShutdown(); // Use new shutdown system
+        WiiU_ShutdownJoystick();
+        AXQuit();
+        WHBProcShutdown();
+        exit(0);
+    }
 #endif // __WIIU__
 
     //!
@@ -69,7 +90,12 @@ int main(int argc, char **argv)
     //
     if (M_ParmExists("-version") || M_ParmExists("--version")) {
         puts(PACKAGE_STRING);
+#ifdef __WIIU__
+        // Use proper shutdown for version check
+        I_Quit();
+#else
         exit(0);
+#endif
     }
 
     {

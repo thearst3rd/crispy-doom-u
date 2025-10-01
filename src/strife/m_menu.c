@@ -27,6 +27,9 @@
 #include "dstrings.h"
 
 #include "d_main.h"
+#ifdef __WIIU__
+#include "wiiu_exit.h"
+#endif // __WIIU__
 #include "deh_main.h"
 
 #include "i_input.h"
@@ -1755,7 +1758,11 @@ void M_QuitResponse(int key)
 
     // [crispy] quit immediately if not showing exit screen
     if(!show_exitscreen || netgame)
+#ifdef __WIIU__
+        platform_request_exit();
+#else
         I_Quit();
+#endif // __WIIU__
     else
     {
         DEH_snprintf(buffer, sizeof(buffer), "qfmrm%i", gametic % 8 + 1);
@@ -1782,7 +1789,11 @@ void M_QuitStrife(int choice)
 {
     // [crispy] fast exit if "run" key is held down
     if (speedkeydown())
+#ifdef __WIIU__
+        platform_request_exit();
+#else
         I_Quit();
+#endif // __WIIU__
 
     DEH_snprintf(endstring, sizeof(endstring),
                  "Do you really want to leave?\n\n" DOSY);
@@ -2229,7 +2240,11 @@ boolean M_Responder (event_t* ev)
          || (ev->type == ev_keydown
           && (ev->data1 == key_menu_activate || ev->data1 == key_menu_quit)))
         {
+#ifdef __WIIU__
+            D_RequestAppExit();
+#else
             I_Quit();
+#endif // __WIIU__
             return true;
         }
 

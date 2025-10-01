@@ -143,7 +143,7 @@ static void LoadResponseFile(int argv_index, const char *filename)
     {
         // Skip past space characters to the next argument
 
-        while(k < size && isspace(infile[k]))
+        while(k < size && isspace((unsigned char)infile[k]))
         {
             ++k;
         }
@@ -191,7 +191,7 @@ static void LoadResponseFile(int argv_index, const char *filename)
 
             argstart = &infile[k];
 
-            while(k < size && !isspace(infile[k]))
+            while(k < size && !isspace((unsigned char)infile[k]))
             {
                 ++k;
             }

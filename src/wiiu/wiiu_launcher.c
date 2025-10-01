@@ -28,7 +28,11 @@
 #include <vpad/input.h>
 #include <coreinit/screen.h>
 #include <coreinit/cache.h>
-#include <whb/proc.h>
+#include <coreinit/time.h>
+#include <coreinit/thread.h>
+#include <proc_ui/procui.h>
+#include <sysapp/launch.h>
+#include <gx2/state.h>
 
 #include "config.h"
 
@@ -38,6 +42,7 @@
 #include "wiiu_launcher_main.h"
 #include "wiiu_launcher_nowads.h"
 #include "wiiu_controller.h"
+#include "wiiu_oscreen.h"
 
 // Global variables
 int launcherRunning = 1; // 0 means go to game, -1 means quit
@@ -107,39 +112,15 @@ void generateArgcArgv()
 
 void launcherRun()
 {
-    // Init launcher
-    OSScreenInit();
-
-    size_t tvBufferSize = OSScreenGetBufferSizeEx(SCREEN_TV);
-    size_t drcBufferSize = OSScreenGetBufferSizeEx(SCREEN_DRC);
-
-    void *tvBuffer = memalign(0x100, tvBufferSize);
-    void *drcBuffer = memalign(0x100, drcBufferSize);
-
-    if (!tvBuffer || !drcBuffer)
-    {
-        OSScreenShutdown();
-        if (tvBuffer)
-            free(tvBuffer);
-        if (drcBuffer) // shouldn't happen?
-            free(drcBuffer);
-        I_Error("Error starting launcher, couldn't create OSScreen Buffers");
-    }
-
-    OSScreenSetBufferEx(SCREEN_TV, tvBuffer);
-    OSScreenSetBufferEx(SCREEN_DRC, drcBuffer);
-    OSScreenEnableEx(SCREEN_TV, true);
-    OSScreenEnableEx(SCREEN_DRC, true);
+    // Init launcher using new OSScreen management system
+    WiiU_OSScreenInit();
 
     // Init launcher states
     launcherMainInit();
     launcherNoWadsInit();
 
-    // I need this variable because with out it, WHBProcIsRunning becomes true
-    // again before exiting, causing a crash
-    bool wbhRunning = true;
-
-    while ((launcherRunning > 0) && (wbhRunning = WHBProcIsRunning()))
+    // Launcher loop - no ProcUI to avoid crashes
+    while (launcherRunning > 0)
     {
         // Poll input
         WiiU_PollJoystick();
@@ -152,22 +133,23 @@ void launcherRun()
         launcherDraw(SCREEN_TV);
         launcherDraw(SCREEN_DRC);
 
-        DCFlushRange(tvBuffer, tvBufferSize);
-        DCFlushRange(drcBuffer, drcBufferSize);
+        DCFlushRange(g_tvBuffer, g_tvBufferSize);
+        DCFlushRange(g_drcBuffer, g_drcBufferSize);
 
         OSScreenFlipBuffersEx(SCREEN_TV);
         OSScreenFlipBuffersEx(SCREEN_DRC);
+        
+        // Small delay to prevent excessive CPU usage
+        OSSleepTicks(OSMillisecondsToTicks(16)); // ~60 FPS
     }
 
-    if (!wbhRunning)
-        launcherRunning = -1; // Quit
+    // Launcher exit is handled by the main loop
+    // No need for custom app running flag
 
-    // Cleanup launcher
-    if (tvBuffer)
-        free(tvBuffer);
-    if (drcBuffer)
-        free(drcBuffer);
-    OSScreenShutdown();
+    // Present clean frame and mark OSScreen for shutdown
+    // Actual shutdown will be completed after SDL presents its first frame
+    WiiU_OSScreenPresentCleanFrame();
+    WiiU_OSScreenMarkForShutdown();
 
     if (launcherRunning >= 0)
     {
@@ -177,12 +159,6 @@ void launcherRun()
     // Cleanup launcher states
     launcherMainCleanup();
     launcherNoWadsCleanup();
-
-    if (launcherRunning < 0)
-    {
-        WHBProcShutdown();
-        exit(0);
-    }
 }
 
 #endif // __WIIU__

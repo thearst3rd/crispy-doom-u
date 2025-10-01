@@ -110,9 +110,12 @@ typedef bool boolean;
 
 typedef enum 
 {
-    false, 
-    true
+    boolean_false, 
+    boolean_true
 } boolean;
+
+#define false boolean_false
+#define true boolean_true
 
 #endif
 

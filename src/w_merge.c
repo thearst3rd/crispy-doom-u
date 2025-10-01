@@ -163,14 +163,14 @@ static boolean ValidSpriteLumpName(char *name)
 
     // First frame:
 
-    if (name[4] == '\0' || !isdigit(name[5]))
+    if (name[4] == '\0' || !isdigit((unsigned char)name[5]))
     {
         return false;
     }
 
     // Second frame (optional):
 
-    if (name[6] != '\0' && !isdigit(name[7]))
+    if (name[6] != '\0' && !isdigit((unsigned char)name[7]))
     {
         return false;
     }

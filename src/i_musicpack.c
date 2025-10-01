@@ -803,9 +803,9 @@ static const char *ReadHashPrefix(char *line)
     char *p;
     int i, len;
 
-    for (p = line; *p != '\0' && !isspace(*p) && *p != '='; ++p)
+    for (p = line; *p != '\0' && !isspace((unsigned char)*p) && *p != '='; ++p)
     {
-        if (!isxdigit(*p))
+        if (!isxdigit((unsigned char)*p))
         {
             return NULL;
         }
@@ -845,7 +845,7 @@ static const char *ParseSubstituteLine(char *musicdir, char *line)
     p = strchr(line, '#');
     if (p != NULL)
     {
-        while (p > line && isspace(*(p - 1)))
+        while (p > line && isspace((unsigned char)*(p - 1)))
         {
             --p;
         }
@@ -853,7 +853,7 @@ static const char *ParseSubstituteLine(char *musicdir, char *line)
     }
 
     // Skip leading spaces.
-    for (p = line; *p != '\0' && isspace(*p); ++p);
+    for (p = line; *p != '\0' && isspace((unsigned char)*p); ++p);
 
     // Empty line? This includes comment lines now that comments have
     // been stripped.
@@ -871,7 +871,7 @@ static const char *ParseSubstituteLine(char *musicdir, char *line)
     p += strlen(hash_prefix);
 
     // Skip spaces.
-    for (; *p != '\0' && isspace(*p); ++p);
+    for (; *p != '\0' && isspace((unsigned char)*p); ++p);
 
     if (*p != '=')
     {
@@ -881,12 +881,12 @@ static const char *ParseSubstituteLine(char *musicdir, char *line)
     ++p;
 
     // Skip spaces.
-    for (; *p != '\0' && isspace(*p); ++p);
+    for (; *p != '\0' && isspace((unsigned char)*p); ++p);
 
     filename = p;
 
     // We're now at the filename. Cut off trailing space characters.
-    while (strlen(p) > 0 && isspace(p[strlen(p) - 1]))
+    while (strlen(p) > 0 && isspace((unsigned char)p[strlen(p) - 1]))
     {
         p[strlen(p) - 1] = '\0';
     }

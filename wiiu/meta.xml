@@ -2,7 +2,7 @@
 <app version="1">
 	<name>Crispy Doom U</name>
 	<coder>thearst3rd</coder>
-	<version>0.3.3 (5.12.0)</version>
+	<version>0.3.3 (5.12.0) - Aroma Compatible</version>
 	<url>https://github.com/thearst3rd/crispy-doom-u/tree/wiiu-port</url>
 	<release_date>20221009000000</release_date>
 	<short_description>Play Doom on the Wii U</short_description>
@@ -12,6 +12,8 @@ https://www.chocolate-doom.org/wiki/index.php/Crispy_Doom
 https://github.com/thearst3rd/crispy-doom-u/tree/wiiu-port
 
 Put your Doom WADs in sd:/wiiu/apps/crispy-doom-u/wads
+
+This version is fully compatible with Aroma and includes proper ProcUI state management for clean exits and background handling.
 
 Thanks for playing!</long_description>
 </app>

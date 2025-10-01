@@ -55,10 +55,13 @@
 #ifdef __WIIU__
 #include <coreinit/thread.h>
 #include <coreinit/time.h>
+#include <coreinit/screen.h>
 
 #include <whb/proc.h>
 #include <whb/log.h>
 #include <whb/log_console.h>
+#include <sndcore2/core.h>
+#include "wiiu_controller.h"
 #endif // __WIIU__
 
 
@@ -253,7 +256,17 @@ void I_BindVariables(void)
 // I_Quit
 //
 
+#ifdef __WIIU__
 void I_Quit (void)
+{
+    // Let WHB handle the exit process
+    // The main loop will exit when WHBProcIsRunning() returns false
+}
+
+void I_Quit_Real (void)
+#else
+void I_Quit (void)
+#endif
 {
     atexit_listentry_t *entry;
 
@@ -270,15 +283,14 @@ void I_Quit (void)
     SDL_Quit();
 
 #ifdef __WIIU__
-    WHBProcShutdown();
-    for (int i = 0; i < myargc; i++)
-    {
-        free(myargv[i]);
-    }
-    free(myargv);
+    // Memory cleanup is handled in I_Quit to avoid duplication
 #endif
 
+#ifndef __WIIU__
     exit(0);
+#else
+    // exit(0) is already called in I_Quit for Wii U
+#endif
 }
 
 
@@ -297,7 +309,7 @@ void I_Error (const char *error, ...)
     char msgbuf[512];
     va_list argptr;
     atexit_listentry_t *entry;
-    boolean exit_gui_popup;
+    // boolean exit_gui_popup; // Unused variable
 
     if (already_quitting)
     {
@@ -306,11 +318,12 @@ void I_Error (const char *error, ...)
         WHBLogConsoleDraw();
         OSSleepTicks(OSMillisecondsToTicks(5000));
         WHBLogConsoleFree();
-        WHBProcShutdown();
+        // Emergency exit
+        exit(-1);
 #else
         fprintf(stderr, "Warning: recursive call to I_Error detected.\n");
-#endif // __WIIU__
         exit(-1);
+#endif // __WIIU__
     }
     else
     {
@@ -383,6 +396,8 @@ void I_Error (const char *error, ...)
     WHBLogConsoleDraw();
     OSSleepTicks(OSMillisecondsToTicks(5000));
     WHBLogConsoleFree();
+    
+    // Use wut's ProcUI wrapper for error exit
     WHBProcShutdown();
 #endif // !__WIIU__
 

@@ -6,9 +6,33 @@ ifeq ($(strip $(DEVKITPRO)),)
 $(error "Please set DEVKITPRO in your environment. export DEVKITPRO=<path to>/devkitpro")
 endif
 
+#-------------------------------------------------------------------------------
+# APP_NAME sets the long name of the application
+# APP_SHORTNAME sets the short name of the application
+# APP_AUTHOR sets the author of the application
+#-------------------------------------------------------------------------------
+APP_NAME	:= Crispy Doom U
+APP_SHORTNAME	:= Doom
+APP_AUTHOR	:= thearst3rd
+
 TOPDIR ?= $(CURDIR)
 
-include $(DEVKITPRO)/wut/share/wut_rules
+# Use environment variables for devkitPro paths
+ifeq ($(strip $(DEVKITPRO)),)
+$(error "Please set DEVKITPRO in your environment. export DEVKITPRO=<path to>/devkitpro")
+endif
+
+# Default to C:/devkitPro if not set, but allow override
+DEVKITPRO_PATH ?= C:/devkitPro
+export DEVKITPPC := $(DEVKITPRO_PATH)/devkitPPC
+
+# Override WUT_ROOT to use forward slashes (works on Windows)
+WUT_ROOT := $(DEVKITPRO_PATH)/wut
+
+include $(DEVKITPRO_PATH)/wut/share/wut_rules
+
+# Override RPXSPECS to use forward slashes (works on Windows)
+RPXSPECS := -specs=$(WUT_ROOT)/share/wut.specs
 
 #-------------------------------------------------------------------------------
 # TARGET is the name of the output
@@ -16,28 +40,37 @@ include $(DEVKITPRO)/wut/share/wut_rules
 # SOURCES is a list of directories containing source code
 # DATA is a list of directories containing data files
 # INCLUDES is a list of directories containing header files
+# CONTENT is the path to the bundled folder that will be mounted as /vol/content/
+# ICON is the game icon, leave blank to use default rule
+# TV_SPLASH is the image displayed during bootup on the TV, leave blank to use default rule
+# DRC_SPLASH is the image displayed during bootup on the DRC, leave blank to use default rule
 #-------------------------------------------------------------------------------
 TARGET		:=	crispy-doom-u
 BUILD		:=	build
 SOURCES		:=	src src/doom opl src/wiiu
 DATA		:=	wiiu-data
 INCLUDES	:=	src src/doom opl src/wiiu
+CONTENT		:=
+ICON		:=	wiiu/icon.png
+TV_SPLASH	:=
+DRC_SPLASH	:=
 
 #-------------------------------------------------------------------------------
 # options for code generation
 #-------------------------------------------------------------------------------
-CFLAGS	:=	-g -Wall -O2 -ffunction-sections \
+CFLAGS	:=	-g -Wall -O2 -ffunction-sections -fno-plt \
 			$(MACHDEP)
 
 CFLAGS	+=	$(INCLUDE) -D__WIIU__ -D__WUT__ \
-			-DBETTER_ANALOG -DBETTER_JOYWAIT -DDISABLE_SDL2NET
+			-DBETTER_ANALOG -DBETTER_JOYWAIT -DDISABLE_SDL2NET \
+			-DHOMEBREW_APP_PATH=\"wiiu/apps/crispy-doom-u\"
 
 CXXFLAGS	:= $(CFLAGS)
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-g $(ARCH) $(RPXSPECS) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:= -lSDL2_mixer -lmpg123 -lmodplug -lvorbisidec -logg `sdl2-config --libs` -lm -lstdc++ -lwut
+LIBS	:= -lSDL2_mixer `$(DEVKITPRO_PATH)/portlibs/wiiu/bin/sdl2-config --libs` -lm -lstdc++ -lwut
 
 #-------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level
@@ -91,6 +124,34 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 
 export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
+ifneq (,$(strip $(CONTENT)))
+	export APP_CONTENT := $(TOPDIR)/$(CONTENT)
+endif
+
+ifneq (,$(strip $(ICON)))
+	export APP_ICON := $(TOPDIR)/$(ICON)
+else ifneq (,$(wildcard $(TOPDIR)/$(TARGET).png))
+	export APP_ICON := $(TOPDIR)/$(TARGET).png
+else ifneq (,$(wildcard $(TOPDIR)/icon.png))
+	export APP_ICON := $(TOPDIR)/icon.png
+endif
+
+ifneq (,$(strip $(TV_SPLASH)))
+	export APP_TV_SPLASH := $(TOPDIR)/$(TV_SPLASH)
+else ifneq (,$(wildcard $(TOPDIR)/tv-splash.png))
+	export APP_TV_SPLASH := $(TOPDIR)/tv-splash.png
+else ifneq (,$(wildcard $(TOPDIR)/splash.png))
+	export APP_TV_SPLASH := $(TOPDIR)/splash.png
+endif
+
+ifneq (,$(strip $(DRC_SPLASH)))
+	export APP_DRC_SPLASH := $(TOPDIR)/$(DRC_SPLASH)
+else ifneq (,$(wildcard $(TOPDIR)/drc-splash.png))
+	export APP_DRC_SPLASH := $(TOPDIR)/drc-splash.png
+else ifneq (,$(wildcard $(TOPDIR)/splash.png))
+	export APP_DRC_SPLASH := $(TOPDIR)/splash.png
+endif
+
 .PHONY: $(BUILD) clean all
 
 #-------------------------------------------------------------------------------
@@ -103,7 +164,7 @@ $(BUILD):
 #-------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).rpx $(TARGET).elf
+	@rm -fr $(BUILD) $(TARGET).wuhb $(TARGET).rpx
 
 #-------------------------------------------------------------------------------
 else
@@ -114,8 +175,9 @@ DEPENDS	:=	$(OFILES:.o=.d)
 #-------------------------------------------------------------------------------
 # main targets
 #-------------------------------------------------------------------------------
-all	:	$(OUTPUT).rpx
+all	:	$(OUTPUT).wuhb
 
+$(OUTPUT).wuhb	:	$(OUTPUT).rpx
 $(OUTPUT).rpx	:	$(OUTPUT).elf
 $(OUTPUT).elf	:	$(OFILES)
 
@@ -125,6 +187,11 @@ $(OFILES_SRC)	: $(HFILES_BIN)
 # you need a rule like this for each extension you use as binary data
 #-------------------------------------------------------------------------------
 %.bin.o	%_bin.h :	%.bin
+#-------------------------------------------------------------------------------
+	@echo $(notdir $<)
+	@$(bin2o)
+
+%.xml.o	%_xml.h :	%.xml
 #-------------------------------------------------------------------------------
 	@echo $(notdir $<)
 	@$(bin2o)

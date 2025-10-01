@@ -636,6 +636,7 @@ static void AddIWADPath(const char *path, const char *suffix)
 // using standard environment variables. See the XDG Base Directory
 // Specification:
 // <http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html>
+__attribute__((unused))
 static void AddXdgDirs(void)
 {
     const char *env;
@@ -700,6 +701,7 @@ static void AddXdgDirs(void)
 // could parse *.vdf files to more accurately detect installation
 // locations, but the defaults are likely to be good enough for just
 // about everyone.
+__attribute__((unused))
 static void AddSteamDirs(void)
 {
     const char *homedir;

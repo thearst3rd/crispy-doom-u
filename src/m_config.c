@@ -2791,7 +2791,7 @@ static void SetVariable(default_t *def, const char *value)
 
             for ( ; str[i] != '\0'; i++)
             {
-                if (!isdigit(str[i]))
+                if (!isdigit((unsigned char)str[i]))
                 {
                     str[i] = dec;
                     break;
@@ -2847,7 +2847,7 @@ static void LoadDefaultCollection(default_collection_t *collection)
         // Strip off trailing non-printable characters (\r characters
         // from DOS text files)
 
-        while (strlen(strparm) > 0 && !isprint(strparm[strlen(strparm)-1]))
+        while (strlen(strparm) > 0 && !isprint((unsigned char)strparm[strlen(strparm)-1]))
         {
             strparm[strlen(strparm)-1] = '\0';
         }

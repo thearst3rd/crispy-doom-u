@@ -27,6 +27,9 @@
 #include "dstrings.h"
 
 #include "d_main.h"
+#ifdef __WIIU__
+#include "wiiu_exit.h"
+#endif // __WIIU__
 #include "deh_main.h"
 
 #include "i_input.h"
@@ -1022,15 +1025,15 @@ static boolean StartsWithMapIdentifier (char *str)
     M_ForceUppercase(str);
 
     if (strlen(str) >= 4 &&
-        str[0] == 'E' && isdigit(str[1]) &&
-        str[2] == 'M' && isdigit(str[3]))
+        str[0] == 'E' && isdigit((unsigned char)str[1]) &&
+        str[2] == 'M' && isdigit((unsigned char)str[3]))
     {
         return true;
     }
 
     if (strlen(str) >= 5 &&
         str[0] == 'M' && str[1] == 'A' && str[2] == 'P' &&
-        isdigit(str[3]) && isdigit(str[4]))
+        isdigit((unsigned char)str[3]) && isdigit((unsigned char)str[4]))
     {
         return true;
     }
@@ -1659,6 +1662,7 @@ void M_Options(int choice)
 }
 
 // [crispy] correctly handle inverted y-axis
+__attribute__((unused))
 static void M_Mouse(int choice)
 {
     if (mouseSensitivity_y < 0)
@@ -1815,7 +1819,7 @@ int     quitsounds2[8] =
 
 void M_QuitResponse(int key)
 {
-    extern int show_endoom;
+    // extern int show_endoom; // Unused variable
 
     if (key != key_menu_confirm)
 	return;
@@ -1832,7 +1836,13 @@ void M_QuitResponse(int key)
 	    S_StartSound(NULL,quitsounds[(gametic>>2)&7]);
 	I_WaitVBL(105);
     }
+#ifdef __WIIU__
+    // Request clean exit instead of calling I_Quit() directly
+    // This allows ProcUI to handle the exit handshake properly
+    platform_request_exit();
+#else
     I_Quit ();
+#endif // __WIIU__
 }
 
 
@@ -1861,7 +1871,11 @@ void M_QuitDOOM(int choice)
 {
     // [crispy] fast exit if "run" key is held down
     if (speedkeydown())
+#ifdef __WIIU__
+	platform_request_exit();
+#else
 	I_Quit();
+#endif // __WIIU__
 
     DEH_snprintf(endstring, sizeof(endstring), "%s\n\n" DOSY,
                  DEH_String(M_SelectEndMessage()));

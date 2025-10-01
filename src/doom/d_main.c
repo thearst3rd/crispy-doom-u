@@ -79,6 +79,9 @@
 
 #ifdef __WIIU__
 #include <whb/proc.h>
+#include <coreinit/screen.h>
+#include <sndcore2/core.h>
+#include "wiiu_controller.h"
 #endif // __WIIU__
 
 
@@ -98,6 +101,10 @@
 void D_DoomLoop (void);
 
 static char *gamedescription;
+
+#ifdef __WIIU__
+#include "wiiu_exit.h"
+#endif // __WIIU__
 
 // Location where savegames are stored
 
@@ -522,6 +529,14 @@ void D_RunFrame()
     static int wipestart;
     static boolean wipe;
 
+#ifdef __WIIU__
+    // Check for exit request from in-game quit menu
+    if (g_request_app_exit)
+    {
+        return; // Exit immediately, main loop will handle cleanup
+    }
+#endif // __WIIU__
+
     if (wipe)
     {
         do
@@ -612,26 +627,24 @@ void D_DoomLoop (void)
     }
 
 #ifdef __WIIU__
-    while (WHBProcIsRunning())
-#else
-    while (1)
-#endif // __WIIU__
+    // Use wut's WHBProcIsRunning wrapper for simplified ProcUI handling
+    // Standard WHB pattern - let SDL and WHB handle everything
+    while (WHBProcIsRunning() && !g_request_app_exit)
     {
         D_RunFrame();
     }
-
-#ifdef __WIIU__
-    extern int quitsounds2[8];
-    extern int quitsounds[8];
-
-    // From m_menu.c, M_QuitResponse
-    if (gamemode == commercial)
-        S_StartSound(NULL,quitsounds2[(gametic>>2)&7]);
-    else
-        S_StartSound(NULL,quitsounds[(gametic>>2)&7]);
-    I_WaitVBL(105);
-
-    I_Quit();
+    
+    // Clean shutdown after main loop exits
+    if (g_request_app_exit)
+    {
+        I_Quit_Real(); // Call the real quit function for proper cleanup
+        WHBProcShutdown();
+    }
+#else
+    while (1)
+    {
+        D_RunFrame();
+    }
 #endif // __WIIU__
 }
 
@@ -865,12 +878,12 @@ static char *GetGameName(const char *gamename)
             DEH_snprintf(deh_gamename, gamename_size, banners[i],
                          version / 100, version % 100);
 
-            while (deh_gamename[0] != '\0' && isspace(deh_gamename[0]))
+            while (deh_gamename[0] != '\0' && isspace((unsigned char)deh_gamename[0]))
             {
                 memmove(deh_gamename, deh_gamename + 1, gamename_size - 1);
             }
 
-            while (deh_gamename[0] != '\0' && isspace(deh_gamename[strlen(deh_gamename)-1]))
+            while (deh_gamename[0] != '\0' && isspace((unsigned char)deh_gamename[strlen(deh_gamename)-1]))
             {
                 deh_gamename[strlen(deh_gamename) - 1] = '\0';
             }
@@ -1450,7 +1463,7 @@ static void G_CheckDemoStatusAtExit (void)
     G_CheckDemoStatus();
 }
 
-static const char *const loadparms[] = {"-file", "-merge", NULL};
+static const char *const loadparms[] __attribute__((unused)) = {"-file", "-merge", NULL};
 
 //
 // D_DoomMain
@@ -1694,6 +1707,10 @@ void D_DoomMain (void)
     modifiedgame = false;
 
     DEH_printf("W_Init: Init WADfiles.\n");
+#ifdef __WIIU__
+    // Present stable black frame before blocking WAD load to prevent garbage scan-out
+    I_PresentBlackFrame();
+#endif // __WIIU__
     D_AddFile(iwadfile);
     numiwadlumps = numlumps;
 
@@ -1840,6 +1857,10 @@ void D_DoomMain (void)
     DEH_ParseCommandLine();
 
     // Load PWAD files.
+#ifdef __WIIU__
+    // Present stable black frame before blocking PWAD load to prevent garbage scan-out
+    I_PresentBlackFrame();
+#endif // __WIIU__
     modifiedgame = W_ParseCommandLine();
 
     //!

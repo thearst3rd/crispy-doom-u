@@ -60,6 +60,25 @@ int WIDESCREENDELTA; // [crispy] horizontal widescreen offset
 static SDL_Window *screen;
 static SDL_Renderer *renderer;
 
+// Helper function to present a stable black frame during blocking operations
+void I_PresentBlackFrame(void) {
+    if (renderer != NULL) {
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        SDL_RenderPresent(renderer);
+        SDL_RenderPresent(renderer); // second call ensures both TV and GamePad buffers are valid
+        
+#ifdef __WIIU__
+        // Complete OSScreen shutdown now that SDL has presented its first frame
+        extern boolean WiiU_OSScreenShutdownPending(void);
+        extern void WiiU_OSScreenCompleteShutdown(void);
+        if (WiiU_OSScreenShutdownPending()) {
+            WiiU_OSScreenCompleteShutdown();
+        }
+#endif // __WIIU__
+    }
+}
+
 // Window title
 
 static const char *window_title = "";
@@ -173,7 +192,7 @@ int force_software_renderer = false;
 // Time to wait for the screen to settle on startup before starting the
 // game (ms)
 
-static int startup_delay = 1000;
+static int startup_delay __attribute__((unused)) = 1000;
 
 // Grab the mouse? (int type for config code). nograbmouse_override allows
 // this to be temporarily disabled via the command line.
@@ -599,6 +618,7 @@ static void UpdateGrab(void)
     currently_grabbed = grab;
 }
 
+__attribute__((unused))
 static void LimitTextureSize(int *w_upscale, int *h_upscale)
 {
     SDL_RendererInfo rinfo;
@@ -1324,6 +1344,7 @@ void I_CheckIsScreensaver(void)
     }
 }
 
+__attribute__((unused))
 static void SetSDLVideoDriver(void)
 {
     // Allow a default value for the SDL video driver to be specified
@@ -1498,10 +1519,19 @@ static void SetVideoMode(void)
     // Turn on vsync if we aren't in a -timedemo
     if (!singletics && mode.refresh_rate > 0)
     {
+#ifdef __WIIU__
+        // Force VSYNC on Wii U to prevent HOME menu hang issue
+        // When leaving foreground, GX2 silently restores swap interval to 1
+        // SDL doesn't reapply zero-interval mode after regaining foreground
+        // Keeping VSYNC enabled avoids this SDL bug
+        renderer_flags |= SDL_RENDERER_PRESENTVSYNC;
+        crispy->vsync = true; // Ensure config matches
+#else
         if (crispy->vsync) // [crispy] uncapped vsync
         {
             renderer_flags |= SDL_RENDERER_PRESENTVSYNC;
         }
+#endif // __WIIU__
     }
 
     if (force_software_renderer)
@@ -1543,6 +1573,13 @@ static void SetVideoMode(void)
         I_Error("Error creating renderer for screen window: %s",
                 SDL_GetError());
     }
+
+#ifdef __WIIU__
+    // Clear screen to prevent corruption during initialization
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    SDL_RenderPresent(renderer);
+#endif // __WIIU__
 
     // Important: Set the "logical size" of the rendering context. At the same
     // time this also defines the aspect ratio that is preserved while scaling

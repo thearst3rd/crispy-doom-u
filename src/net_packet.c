@@ -223,7 +223,7 @@ char *NET_ReadSafeString(net_packet_t *packet)
         // TODO: This is a very naive way of producing a safe string; only
         // ASCII characters are allowed. Probably this should really support
         // UTF-8 characters as well.
-        if (isprint(*r) || *r == '\n')
+        if (isprint((unsigned char)*r) || *r == '\n')
         {
             *w = *r;
             ++w;
